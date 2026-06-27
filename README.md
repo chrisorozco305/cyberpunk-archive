@@ -2,7 +2,9 @@
 
 A fully functional, neon-drenched digital archive website celebrating cyberpunk culture. Built with vanilla HTML, CSS, and JavaScript — no frameworks, no build tools, no dependencies. Just pure dystopian vibes.
 
-![Screenshot of Cyberpunk Archive homepage with neon cyan/magenta colors, sidebar navigation, and animated terminal widget](./preview.png)
+<img src="./preview.png" alt="Screenshot of Cyberpunk Archive homepage" width="100%" style="border-radius: 8px; border: 1px solid #00e5ff; box-shadow: 0 0 20px rgba(0,229,255,0.3);">
+
+**Features:** Sidebar navigation • Media gallery with lightbox • Audio player with visualizer • Blog/news • Community guestbook • Customizable themes • localStorage persistence • Fully responsive
 
 ## What is this?
 
