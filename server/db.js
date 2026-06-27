@@ -37,10 +37,19 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS playlist (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     title       TEXT NOT NULL,
-    artist      TEXT NOT NULL,
-    duration    TEXT NOT NULL,          -- Format: "4:23"
+    artist      TEXT,
+    duration    TEXT,                   -- Format: "4:23" (optional for YouTube tracks)
     genre       TEXT,
     cover_url   TEXT,
+    youtube_id  TEXT,                   -- YouTube video ID — embeds in the player when set
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS videos (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    youtube_id  TEXT UNIQUE NOT NULL,   -- The ID from youtube.com/watch?v=XXXXX
+    title       TEXT NOT NULL,
+    category    TEXT DEFAULT 'Soundtrack', -- Soundtrack | Trailers | Fan Edits | Docs
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);

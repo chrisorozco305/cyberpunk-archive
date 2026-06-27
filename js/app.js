@@ -538,21 +538,36 @@ document.addEventListener('keydown', e => {
 // - Replace tickPlayer() with actual playback time from audio.currentTime
 // - Use audio.play() / audio.pause() instead of timer logic
 
-function renderPlaylist() {
+// In-memory cache of tracks loaded from the API
+let playlistTracks = [];
+
+async function renderPlaylist() {
   const ul = document.getElementById('playlist');
   if (!ul) return;
 
-  ul.innerHTML = PLAYLIST_DATA.map((t, i) => `
+  try {
+    const res = await fetch('/api/playlist');
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    playlistTracks = await res.json();
+  } catch {
+    // Fall back to hardcoded data if server isn't running
+    playlistTracks = PLAYLIST_DATA.map(t => ({ ...t, dur: t.dur }));
+  }
+
+  ul.innerHTML = playlistTracks.map((t, i) => `
     <li class="pl-item ${i === 0 ? 'active' : ''}" onclick="selectTrack(${i})">
       <span class="pl-num">${i === 0 ? '▶' : i + 1}</span>
       <div class="pl-info">
-        <div class="pl-track">${t.title}</div>
-        <div class="pl-artist">${t.artist}</div>
+        <div class="pl-track">${escHtml(t.title)}</div>
+        <div class="pl-artist">${escHtml(t.artist || '')}</div>
       </div>
-      <span class="pl-dur">${t.dur}</span>
+      <span class="pl-dur">${t.duration || t.dur || ''}</span>
     </li>`).join('');
 
-  document.getElementById('playlistCount').textContent = PLAYLIST_DATA.length + ' TRACKS';
+  document.getElementById('playlistCount').textContent = playlistTracks.length + ' TRACKS';
+
+  // Load the first track into the player display
+  if (playlistTracks.length) updatePlayerDisplay(0);
 }
 
 function renderAlbums() {
@@ -573,23 +588,50 @@ function renderAlbums() {
   }).join('');
 }
 
+function updatePlayerDisplay(idx) {
+  const t = playlistTracks[idx];
+  if (!t) return;
+
+  document.getElementById('playerTrack').textContent    = t.title;
+  document.getElementById('playerArtist').textContent   = t.artist || '';
+  document.getElementById('playerAlbum').textContent    = t.genre  || '';
+  document.getElementById('playerDuration').textContent = t.duration || t.dur || '';
+
+  // If the track has a YouTube ID, embed the video in the cover area
+  const cover = document.getElementById('playerCover');
+  if (t.youtube_id) {
+    cover.innerHTML = `
+      <iframe
+        width="100%" height="100%"
+        src="https://www.youtube.com/embed/${t.youtube_id}?autoplay=1"
+        style="border:0;border-radius:var(--radius);"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>`;
+  } else {
+    cover.innerHTML = `<div class="cover-art">♫</div>`;
+  }
+}
+
 function selectTrack(idx) {
   currentTrack = idx;
-  const t = PLAYLIST_DATA[idx];
 
-  document.getElementById('playerTrack').textContent  = t.title;
-  document.getElementById('playerArtist').textContent = t.artist;
-  document.getElementById('playerDuration').textContent = t.dur;
+  // Stop any existing playback timer
+  clearInterval(playerInterval);
+  isPlaying = false;
   currentSeconds = 0;
   updateProgress(0);
+  document.getElementById('playBtn').textContent = '▶';
 
+  // Update playlist highlight
   document.querySelectorAll('.pl-item').forEach((el, i) => {
     el.classList.toggle('active', i === idx);
     el.querySelector('.pl-num').textContent = i === idx ? '▶' : i + 1;
   });
 
-  if (!isPlaying) togglePlay();
-  notify(`Now playing: ${t.title}`, 'success');
+  // Load track info + embed YouTube if available
+  updatePlayerDisplay(idx);
+  notify(`Now playing: ${playlistTracks[idx]?.title || ''}`, 'success');
 }
 
 function togglePlay() {
@@ -712,30 +754,88 @@ function startVizAnimation() {
 }
 
 // ────────────────────────────────────
-// VIDEOS
+// VIDEOS — Fetches from API, embeds YouTube
 // ────────────────────────────────────
+// Videos are stored in SQLite with a youtube_id column.
+// We build a YouTube embed URL from that ID.
+// Falls back to placeholder cards if API is unavailable.
 
-function renderVideos() {
+async function renderVideos() {
   const grid = document.getElementById('videoGrid');
   if (!grid) return;
 
-  grid.innerHTML = VIDEO_DATA.map(v => {
-    const bg = `linear-gradient(135deg, ${v.colors.join(', ')})`;
-    return `
-      <div class="video-card" onclick="notify('Video player coming soon: ${escHtml(v.title)}', 'info')">
-        <div class="video-thumb" style="background:${bg}">
-          <span>${v.emoji}</span>
-          <div class="video-play-overlay">▶</div>
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
+    <div style="font-size:2rem;margin-bottom:.5rem">⟳</div>LOADING...
+  </div>`;
+
+  try {
+    const res = await fetch('/api/videos');
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const videos = await res.json();
+
+    if (!videos.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
+        No videos found. Run <code>npm run seed:videos</code> to populate.
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = videos.map(v => `
+      <div class="video-card">
+        <div class="video-embed-wrap" style="position:relative;aspect-ratio:16/9;background:#000;">
+          <!-- Lazy-load iframe: only loads when user clicks the thumbnail -->
+          <img
+            class="video-thumb-img"
+            src="https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg"
+            alt="${escHtml(v.title)}"
+            style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
+            onclick="loadYouTubeEmbed(this, '${v.youtube_id}')"
+          >
+          <!-- Play button overlay -->
+          <div class="video-play-overlay" onclick="loadYouTubeEmbed(this.parentElement.querySelector('img'), '${v.youtube_id}')">▶</div>
         </div>
         <div class="video-meta">
-          <div class="video-title">${v.title}</div>
+          <div class="video-title">${escHtml(v.title)}</div>
           <div class="video-info">
-            <span class="video-dur">${v.dur}</span>
-            <span class="video-cat">${v.cat}</span>
+            <span class="video-cat">${v.category}</span>
           </div>
         </div>
-      </div>`;
-  }).join('');
+      </div>`).join('');
+
+  } catch (err) {
+    // Fallback to hardcoded placeholder data
+    console.warn('Videos API unavailable, using placeholder data:', err.message);
+    grid.innerHTML = VIDEO_DATA.map(v => {
+      const bg = `linear-gradient(135deg, ${v.colors.join(', ')})`;
+      return `
+        <div class="video-card">
+          <div class="video-thumb" style="background:${bg};aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:3rem;">
+            <span>${v.emoji}</span>
+            <div class="video-play-overlay">▶</div>
+          </div>
+          <div class="video-meta">
+            <div class="video-title">${v.title}</div>
+            <div class="video-info">
+              <span class="video-dur">${v.dur}</span>
+              <span class="video-cat">${v.cat}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+}
+
+// Replace thumbnail with actual YouTube embed iframe when user clicks play
+function loadYouTubeEmbed(imgEl, youtubeId) {
+  const wrap = imgEl.closest('.video-embed-wrap');
+  wrap.innerHTML = `
+    <iframe
+      width="100%" height="100%"
+      src="https://www.youtube.com/embed/${youtubeId}?autoplay=1"
+      style="border:0;position:absolute;inset:0;"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>`;
 }
 
 // ────────────────────────────────────

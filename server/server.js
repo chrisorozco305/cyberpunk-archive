@@ -15,7 +15,9 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-import galleryRoutes from './routes/gallery.js';
+import galleryRoutes  from './routes/gallery.js';
+import videoRoutes    from './routes/videos.js';
+import playlistRoutes from './routes/playlist.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -35,8 +37,9 @@ app.use(express.static(join(__dirname, '..')));
 
 // ── API Routes ──────────────────────────────────────────────────────
 
-// All gallery endpoints live under /api/gallery
-app.use('/api/gallery', galleryRoutes);
+app.use('/api/gallery',  galleryRoutes);
+app.use('/api/videos',   videoRoutes);
+app.use('/api/playlist', playlistRoutes);
 
 // Health check endpoint — useful for AWS load balancers to verify server is up
 app.get('/api/health', (req, res) => {
