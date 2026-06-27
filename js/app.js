@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function routeFromHash() {
   // Read hash from URL, default to 'home'
   const hash = window.location.hash.slice(1) || 'home';
-  const validPages = ['home','gallery','audio','videos','community','blog','downloads','about','settings'];
+  const validPages = ['home','gallery','audio','videos','watch','community','blog','downloads','about','settings'];
 
   // Validate page exists, otherwise show 404
   navigateTo(validPages.includes(hash) ? hash : '404');
@@ -270,7 +270,29 @@ function navigateTo(page) {
   // Run page-specific setup (animations, data fetches, etc.)
   if (page === 'home')   initCounters();
   if (page === '404')    initMatrixRain();
-  if (page === 'videos') renderVideos();      // Re-fetch each time so new videos appear
+  if (page === 'videos') renderVideos();
+
+  // Mini player: show when leaving watch, hide when returning
+  const mini = document.getElementById('miniPlayer');
+  if (mini) {
+    if (page === 'watch') {
+      mini.classList.remove('visible');
+      // Move iframe back into the main player if it was in mini
+      const frame = document.getElementById('miniPlayerFrame');
+      const mainPlayer = document.getElementById('watchPlayer');
+      if (frame.firstChild && mainPlayer) {
+        mainPlayer.appendChild(frame.firstChild);
+      }
+    } else {
+      // Move the playing iframe into the mini player so audio continues
+      const mainPlayer = document.getElementById('watchPlayer');
+      const iframe = mainPlayer && mainPlayer.querySelector('iframe');
+      if (iframe) {
+        document.getElementById('miniPlayerFrame').appendChild(iframe);
+        mini.classList.add('visible');
+      }
+    }
+  }
 }
 
 // ────────────────────────────────────
@@ -916,16 +938,14 @@ function displayVideos(videos) {
   }
 
   grid.innerHTML = videos.map(v => `
-    <div class="video-card">
+    <div class="video-card" onclick="openVideo('${v.youtube_id}')" style="cursor:pointer;">
       <div class="video-embed-wrap" style="position:relative;aspect-ratio:16/9;background:#000;">
         <img
           class="video-thumb-img"
           src="https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg"
           alt="${escHtml(v.title)}"
-          style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
-          onclick="loadYouTubeEmbed(this, '${v.youtube_id}')"
-        >
-        <div class="video-play-overlay" onclick="loadYouTubeEmbed(this.parentElement.querySelector('img'), '${v.youtube_id}')">▶</div>
+          style="width:100%;height:100%;object-fit:cover;">
+        <div class="video-play-overlay">▶</div>
       </div>
       <div class="video-meta">
         <div class="video-title">${escHtml(v.title)}</div>
@@ -944,6 +964,56 @@ function filterVideos(btn) {
   const filter = btn.dataset.filter;
   const filtered = filter === 'all' ? allVideos : allVideos.filter(v => v.category === filter);
   displayVideos(filtered);
+}
+
+// ────────────────────────────────────
+// THEATER / WATCH PAGE
+// ────────────────────────────────────
+
+function openVideo(youtubeId) {
+  const video = allVideos.find(v => v.youtube_id === youtubeId);
+  if (!video) return;
+
+  // Clear mini player first so the iframe moves back cleanly
+  const mini = document.getElementById('miniPlayer');
+  const miniFrame = document.getElementById('miniPlayerFrame');
+  if (mini) { mini.classList.remove('visible'); miniFrame.innerHTML = ''; }
+
+  // Load fresh iframe in the main player
+  document.getElementById('watchPlayer').innerHTML = `
+    <iframe
+      src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>`;
+
+  // Title and category
+  document.getElementById('watchTitle').textContent = video.title;
+  document.getElementById('watchCat').textContent   = video.category.toUpperCase();
+
+  // Recommendations grid — every other video
+  const others = allVideos.filter(v => v.youtube_id !== youtubeId);
+  document.getElementById('watchRecommended').innerHTML = others.map(v => `
+    <div class="rec-card" onclick="openVideo('${v.youtube_id}')">
+      <img class="rec-thumb"
+        src="https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg"
+        alt="${escHtml(v.title)}">
+      <div class="rec-info">
+        <div class="rec-title">${escHtml(v.title)}</div>
+        <div class="rec-cat">${v.category.toUpperCase()}</div>
+      </div>
+    </div>`).join('');
+
+  navigateTo('watch');
+}
+
+function closeMiniPlayer() {
+  const mini = document.getElementById('miniPlayer');
+  const miniFrame = document.getElementById('miniPlayerFrame');
+  if (mini) { mini.classList.remove('visible'); miniFrame.innerHTML = ''; }
+  // Also clear the main player so it doesn't resume on return
+  const mainPlayer = document.getElementById('watchPlayer');
+  if (mainPlayer) mainPlayer.innerHTML = '';
 }
 
 // Replace thumbnail with actual YouTube embed iframe when user clicks play

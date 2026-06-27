@@ -377,6 +377,39 @@
       </div>
     </section>
 
+    <!-- ───── VIDEO PLAYER (theater mode) ───── -->
+    <section class="page" id="page-watch" data-title="WATCH">
+      <div class="page-body watch-body">
+
+        <button class="watch-back" onclick="navigateTo('videos')">← BACK TO VIDEOS</button>
+
+        <!-- Main player (full width) -->
+        <div class="watch-player" id="watchPlayer">
+          <!-- YouTube iframe injected by JS, stays in DOM even when navigating away -->
+        </div>
+
+        <div class="watch-meta">
+          <div class="watch-cat" id="watchCat"></div>
+          <h2 class="watch-title" id="watchTitle"></h2>
+        </div>
+
+        <!-- Recommendations below (full width grid) -->
+        <div class="watch-recommendations">
+          <div class="watch-rec-header">UP NEXT</div>
+          <div class="watch-rec-grid" id="watchRecommended">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Mini player — fixed bottom-right when user leaves the watch page -->
+    <div id="miniPlayer">
+      <button id="miniPlayerClose" onclick="closeMiniPlayer()">✕</button>
+      <div id="miniPlayerFrame"></div>
+    </div>
+
     <!-- ───── COMMUNITY ───── -->
     <section class="page" id="page-community" data-title="COMMUNITY HUB">
       <div class="page-body">
