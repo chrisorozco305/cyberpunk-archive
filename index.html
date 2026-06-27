@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERPUNK ARCHIVE // DATA VAULT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Audiowide&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="theme-cyan">
+
+  <!-- Global overlays -->
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="noise" aria-hidden="true"></div>
+
+  <!-- Mobile top bar -->
+  <header class="mobile-header" id="mobileHeader">
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="mobile-logo glitch" data-text="CYBER_ARCHIVE">CYBER_ARCHIVE</div>
+    <div class="mobile-status">
+      <span class="pulse-dot"></span>
+    </div>
+  </header>
+
+  <!-- Sidebar backdrop (mobile) -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-logo">
+        <span class="brand-icon">⬡</span>
+        <div>
+          <div class="brand-name glitch" data-text="CYBER_ARCHIVE">CYBER_ARCHIVE</div>
+          <div class="brand-tagline">// DATA VAULT v2.0.77</div>
+        </div>
+      </div>
+      <div class="brand-status">
+        <span class="badge badge-online"><span class="pulse-dot"></span> ONLINE</span>
+        <span class="badge badge-count">847 nodes</span>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="sidebar-search-wrap">
+      <input type="text" id="searchInput" class="sidebar-search" placeholder="SEARCH ARCHIVE..." autocomplete="off">
+      <span class="search-ico">⌕</span>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+      <div class="nav-group" id="group-main">
+        <button class="nav-group-header" onclick="toggleGroup('main')">
+          <span class="nav-group-icon">◈</span>
+          <span>MAIN CONTENT</span>
+          <span class="nav-chevron" id="chev-main">▾</span>
+        </button>
+        <ul class="nav-list" id="list-main">
+          <li><a class="nav-link active" href="#home" data-page="home"><span class="nl-icon">⌂</span>Archive Home</a></li>
+          <li><a class="nav-link" href="#gallery" data-page="gallery"><span class="nl-icon">◉</span>Media Gallery</a></li>
+          <li><a class="nav-link" href="#audio" data-page="audio"><span class="nl-icon">♫</span>Audio Player</a></li>
+          <li><a class="nav-link" href="#videos" data-page="videos"><span class="nl-icon">▶</span>Videos</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group" id="group-community">
+        <button class="nav-group-header" onclick="toggleGroup('community')">
+          <span class="nav-group-icon">◈</span>
+          <span>COMMUNITY</span>
+          <span class="nav-chevron" id="chev-community">▾</span>
+        </button>
+        <ul class="nav-list" id="list-community">
+          <li><a class="nav-link" href="#community" data-page="community"><span class="nl-icon">◌</span>Community Hub</a></li>
+          <li><a class="nav-link" href="#blog" data-page="blog"><span class="nl-icon">≡</span>Blog / News</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group" id="group-resources">
+        <button class="nav-group-header" onclick="toggleGroup('resources')">
+          <span class="nav-group-icon">◈</span>
+          <span>RESOURCES</span>
+          <span class="nav-chevron" id="chev-resources">▾</span>
+        </button>
+        <ul class="nav-list" id="list-resources">
+          <li><a class="nav-link" href="#downloads" data-page="downloads"><span class="nl-icon">⊡</span>Downloads</a></li>
+          <li><a class="nav-link" href="#about" data-page="about"><span class="nl-icon">◑</span>About / History</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group" id="group-settings">
+        <button class="nav-group-header" onclick="toggleGroup('settings')">
+          <span class="nav-group-icon">◈</span>
+          <span>SETTINGS</span>
+          <span class="nav-chevron" id="chev-settings">▾</span>
+        </button>
+        <ul class="nav-list" id="list-settings">
+          <li><a class="nav-link" href="#settings" data-page="settings"><span class="nl-icon">⚙</span>Customization</a></li>
+        </ul>
+      </div>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sf-stats">
+        <div class="sf-stat"><div class="sf-val">12,847</div><div class="sf-key">FILES</div></div>
+        <div class="sf-stat"><div class="sf-val">2.4 TB</div><div class="sf-key">STORED</div></div>
+        <div class="sf-stat"><div class="sf-val">99.9%</div><div class="sf-key">UPTIME</div></div>
+      </div>
+      <div class="sf-warn">// UNAUTHORIZED ACCESS WILL BE PROSECUTED //</div>
+    </div>
+
+  </aside>
+  <!-- ═══════════════════════════════ END SIDEBAR ════════════════════════════ -->
+
+  <!-- ═══════════════════════════════ MAIN ════════════════════════════════ -->
+  <main class="main" id="main">
+
+    <!-- ───── HOME ───── -->
+    <section class="page active" id="page-home" data-title="ARCHIVE HOME">
+
+      <div class="hero">
+        <div class="hero-grid-bg"></div>
+        <div class="hero-content">
+          <div class="hero-eyebrow">// CLASSIFIED ARCHIVE // ACCESS GRANTED //</div>
+          <h1 class="hero-title glitch" data-text="CYBERPUNK ARCHIVE">CYBERPUNK ARCHIVE</h1>
+          <p class="hero-subtitle typing-target" id="typingTarget"></p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="navigateTo('gallery')">EXPLORE ARCHIVE</button>
+            <button class="btn btn-ghost" onclick="navigateTo('about')">LEARN MORE</button>
+          </div>
+        </div>
+        <div class="hero-terminal">
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="term-dot red"></span>
+              <span class="term-dot yellow"></span>
+              <span class="term-dot green"></span>
+              <span class="term-title">SYSTEM STATUS</span>
+            </div>
+            <div class="terminal-body" id="terminalBody">
+              <p><span class="t-prompt">▶</span> <span class="t-green">Initializing archive systems...</span></p>
+              <p><span class="t-prompt">▶</span> <span class="t-cyan">Loading data nodes... <span class="t-accent">OK</span></span></p>
+              <p><span class="t-prompt">▶</span> <span class="t-cyan">Auth layer active... <span class="t-accent">OK</span></span></p>
+              <p><span class="t-prompt">▶</span> <span class="t-cyan">Neural link established... <span class="t-accent">OK</span></span></p>
+              <p><span class="t-prompt">▶</span> <span class="t-magenta">WARNING: 3 blacklisted IPs detected</span></p>
+              <p><span class="t-prompt">▶</span> <span class="t-green">Archive ONLINE. Welcome, operative.</span></p>
+              <p class="t-cursor">_</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-body">
+
+        <div class="section-header">
+          <h2 class="section-title">FEATURED COLLECTIONS</h2>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card card-cyan" onclick="navigateTo('gallery')">
+            <div class="fc-icon">◉</div>
+            <div class="fc-content">
+              <h3>MEDIA GALLERY</h3>
+              <p>2,847 cyberpunk wallpapers, concept art, and screenshots from the neon underground.</p>
+              <span class="fc-badge">2,847 FILES</span>
+            </div>
+            <div class="fc-glow"></div>
+          </div>
+          <div class="feature-card card-magenta" onclick="navigateTo('audio')">
+            <div class="fc-icon">♫</div>
+            <div class="fc-content">
+              <h3>AUDIO ARCHIVE</h3>
+              <p>Synthwave, darksynth, retrowave — the soundtrack to the dystopian future.</p>
+              <span class="fc-badge">1,204 TRACKS</span>
+            </div>
+            <div class="fc-glow"></div>
+          </div>
+          <div class="feature-card card-purple" onclick="navigateTo('community')">
+            <div class="fc-icon">◌</div>
+            <div class="fc-content">
+              <h3>COMMUNITY HUB</h3>
+              <p>Forums, IRC channels, and an active community of digital operatives worldwide.</p>
+              <span class="fc-badge">847 ONLINE</span>
+            </div>
+            <div class="fc-glow"></div>
+          </div>
+          <div class="feature-card card-green" onclick="navigateTo('downloads')">
+            <div class="fc-icon">⊡</div>
+            <div class="fc-content">
+              <h3>RESOURCES</h3>
+              <p>Tools, guides, and downloads for navigating the sprawl — both digital and physical.</p>
+              <span class="fc-badge">340 TOOLS</span>
+            </div>
+            <div class="fc-glow"></div>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top:3rem">
+          <h2 class="section-title">LATEST TRANSMISSIONS</h2>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="news-ticker-wrap">
+          <span class="ticker-label">BREAKING</span>
+          <div class="news-ticker" id="newsTicker">
+            <span>MEGACORP BLACKOUT IN SECTOR 7 — CIVILIANS ADVISED TO AVOID ZONE &nbsp;◈&nbsp; NEW SYNTHWAVE COMPILATION UPLOADED BY USER ghost_runner &nbsp;◈&nbsp; ARCHIVE SERVERS UPGRADED TO 2.4TB STORAGE &nbsp;◈&nbsp; COMMUNITY VOTE: BEST CYBERPUNK FILM OF 2024 — RESULTS INSIDE &nbsp;◈&nbsp;</span>
+          </div>
+        </div>
+
+        <div class="recent-grid">
+          <div class="recent-article" onclick="navigateTo('blog')">
+            <div class="ra-meta"><span class="ra-cat cat-news">NEWS</span><span class="ra-date">2026.06.27</span></div>
+            <h4 class="ra-title">NightCity Underground Report: Digital Resistance Growing</h4>
+            <p class="ra-excerpt">Operatives in Sector 9 report increased surveillance drones but citizen counter-measures are proving effective...</p>
+          </div>
+          <div class="recent-article" onclick="navigateTo('blog')">
+            <div class="ra-meta"><span class="ra-cat cat-release">RELEASE</span><span class="ra-date">2026.06.25</span></div>
+            <h4 class="ra-title">Archive v2.0.77 — New Gallery Engine + Search Overhaul</h4>
+            <p class="ra-excerpt">We've rebuilt the media gallery from scratch with hardware-accelerated rendering and fuzzy search...</p>
+          </div>
+          <div class="recent-article" onclick="navigateTo('blog')">
+            <div class="ra-meta"><span class="ra-cat cat-art">ART</span><span class="ra-date">2026.06.22</span></div>
+            <h4 class="ra-title">Featured: The Neon Ruins Collection by pixel_ghost</h4>
+            <p class="ra-excerpt">A 47-piece digital art series exploring post-collapse urban environments rendered in brutal neon...</p>
+          </div>
+        </div>
+
+        <div class="home-stats-row">
+          <div class="stat-card">
+            <div class="stat-num" data-target="12847">0</div>
+            <div class="stat-lbl">TOTAL FILES</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" data-target="847">0</div>
+            <div class="stat-lbl">ACTIVE USERS</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" data-target="1204">0</div>
+            <div class="stat-lbl">AUDIO TRACKS</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" data-target="2847">0</div>
+            <div class="stat-lbl">GALLERY ITEMS</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" data-target="340">0</div>
+            <div class="stat-lbl">TOOLS</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ───── GALLERY ───── -->
+    <section class="page" id="page-gallery" data-title="MEDIA GALLERY">
+      <div class="page-body">
+
+        <div class="page-hero-bar">
+          <div>
+            <h1 class="page-title glitch" data-text="MEDIA GALLERY">MEDIA GALLERY</h1>
+            <p class="page-desc">Digital artifacts from the neon underground. Wallpapers, concept art, screenshots.</p>
+          </div>
+          <div class="gallery-filters">
+            <button class="filter-btn active" data-filter="all">ALL</button>
+            <button class="filter-btn" data-filter="wallpaper">WALLPAPER</button>
+            <button class="filter-btn" data-filter="concept">CONCEPT ART</button>
+            <button class="filter-btn" data-filter="screenshot">SCREENSHOTS</button>
+            <button class="filter-btn" data-filter="fanart">FAN ART</button>
+          </div>
+        </div>
+
+        <div class="gallery-grid" id="galleryGrid">
+          <!-- Gallery items injected by JS -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ───── AUDIO ───── -->
+    <section class="page" id="page-audio" data-title="AUDIO PLAYER">
+      <div class="page-body">
+
+        <h1 class="page-title glitch" data-text="AUDIO ARCHIVE">AUDIO ARCHIVE</h1>
+        <p class="page-desc">Synthwave · Darksynth · Retrowave · Industrial. The sound of the sprawl.</p>
+
+        <div class="player-layout">
+          <div class="player-main">
+            <div class="player-visualizer" id="playerVisualizer">
+              <div class="viz-bars" id="vizBars"></div>
+            </div>
+            <div class="player-info">
+              <div class="player-cover" id="playerCover">
+                <div class="cover-art"></div>
+              </div>
+              <div class="player-meta">
+                <div class="player-track" id="playerTrack">GHOST IN THE WIRE</div>
+                <div class="player-artist" id="playerArtist">NEON_PHANTOM</div>
+                <div class="player-album" id="playerAlbum">Synthetic Nightmares Vol. 3</div>
+              </div>
+            </div>
+            <div class="player-progress-wrap">
+              <span class="player-time" id="playerCurrentTime">0:00</span>
+              <div class="player-progress" id="playerProgress" onclick="seekAudio(event)">
+                <div class="progress-bar" id="progressBar" style="width:35%"></div>
+                <div class="progress-thumb" id="progressThumb" style="left:35%"></div>
+              </div>
+              <span class="player-time" id="playerDuration">4:23</span>
+            </div>
+            <div class="player-controls">
+              <button class="ctrl-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">⇄</button>
+              <button class="ctrl-btn" onclick="prevTrack()" title="Previous">⏮</button>
+              <button class="ctrl-btn ctrl-play" id="playBtn" onclick="togglePlay()" title="Play/Pause">▶</button>
+              <button class="ctrl-btn" onclick="nextTrack()" title="Next">⏭</button>
+              <button class="ctrl-btn" id="repeatBtn" onclick="toggleRepeat()" title="Repeat">↻</button>
+            </div>
+            <div class="player-volume">
+              <span class="vol-icon" onclick="toggleMute()">🔊</span>
+              <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80">
+              <span class="vol-val" id="volVal">80%</span>
+            </div>
+          </div>
+
+          <div class="playlist-panel">
+            <div class="playlist-header">
+              <h3>PLAYLIST</h3>
+              <span class="playlist-count" id="playlistCount">12 TRACKS</span>
+            </div>
+            <ul class="playlist" id="playlist">
+              <!-- Injected by JS -->
+            </ul>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top:3rem">
+          <h2 class="section-title">FEATURED RELEASES</h2>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="album-grid" id="albumGrid">
+          <!-- Injected by JS -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ───── VIDEOS ───── -->
+    <section class="page" id="page-videos" data-title="VIDEOS">
+      <div class="page-body">
+        <h1 class="page-title glitch" data-text="VIDEO ARCHIVE">VIDEO ARCHIVE</h1>
+        <p class="page-desc">Curated cyberpunk media — films, trailers, fan cuts, and transmissions from the grid.</p>
+
+        <div class="video-categories">
+          <button class="filter-btn active">ALL</button>
+          <button class="filter-btn">FILMS</button>
+          <button class="filter-btn">TRAILERS</button>
+          <button class="filter-btn">FAN EDITS</button>
+          <button class="filter-btn">DOCS</button>
+        </div>
+
+        <div class="video-grid" id="videoGrid">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── COMMUNITY ───── -->
+    <section class="page" id="page-community" data-title="COMMUNITY HUB">
+      <div class="page-body">
+        <h1 class="page-title glitch" data-text="COMMUNITY HUB">COMMUNITY HUB</h1>
+        <p class="page-desc">Connect with digital operatives across the sprawl. Forums, IRC, Discord, and more.</p>
+
+        <div class="comm-grid">
+          <div class="comm-card">
+            <div class="cc-icon" style="color:var(--acc-cyan)">⌘</div>
+            <h3>FORUMS</h3>
+            <p>Join discussions on cyberpunk lore, tech, art, and the state of the world.</p>
+            <div class="cc-stats">
+              <span>2,341 threads</span>
+              <span>18,402 posts</span>
+            </div>
+            <button class="btn btn-primary" onclick="notify('Forum system coming soon', 'info')">ENTER FORUMS</button>
+          </div>
+          <div class="comm-card">
+            <div class="cc-icon" style="color:var(--acc-green)">◎</div>
+            <h3>IRC CHANNEL</h3>
+            <p>Real-time chat on the archive's IRC server. Old-school, encrypted, reliable.</p>
+            <div class="cc-stats">
+              <span>server: irc.cyberarch.net</span>
+              <span>#main, #art, #music</span>
+            </div>
+            <button class="btn btn-primary" onclick="notify('IRC: irc.cyberarch.net:6667', 'info')">CONNECT</button>
+          </div>
+          <div class="comm-card">
+            <div class="cc-icon" style="color:var(--acc-purple)">⬡</div>
+            <h3>DISCORD</h3>
+            <p>Voice channels, bot commands, and the active daily community.</p>
+            <div class="cc-stats">
+              <span>847 members</span>
+              <span>23 channels</span>
+            </div>
+            <button class="btn btn-primary" onclick="notify('Discord invite link here', 'info')">JOIN SERVER</button>
+          </div>
+          <div class="comm-card">
+            <div class="cc-icon" style="color:var(--acc-magenta)">✉</div>
+            <h3>GUESTBOOK</h3>
+            <p>Leave your mark in the archive. Sign the guestbook, operative.</p>
+            <div class="cc-stats">
+              <span>3,291 entries</span>
+              <span>since 2019</span>
+            </div>
+            <button class="btn btn-primary" onclick="openGuestbook()">SIGN GUESTBOOK</button>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top:3rem">
+          <h2 class="section-title">GUESTBOOK ENTRIES</h2>
+          <div class="section-line"></div>
+        </div>
+        <div class="guestbook" id="guestbook">
+          <!-- Injected by JS -->
+        </div>
+
+        <div class="guestbook-form-wrap" id="guestbookForm" style="display:none">
+          <h3>SIGN THE GUESTBOOK</h3>
+          <input type="text" class="gb-input" id="gbName" placeholder="OPERATIVE NAME">
+          <textarea class="gb-input gb-textarea" id="gbMsg" placeholder="LEAVE YOUR TRANSMISSION..."></textarea>
+          <div style="display:flex;gap:1rem;margin-top:1rem">
+            <button class="btn btn-primary" onclick="submitGuestbook()">TRANSMIT</button>
+            <button class="btn btn-ghost" onclick="closeGuestbook()">CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── BLOG ───── -->
+    <section class="page" id="page-blog" data-title="BLOG / NEWS">
+      <div class="page-body">
+        <h1 class="page-title glitch" data-text="TRANSMISSIONS">TRANSMISSIONS</h1>
+        <p class="page-desc">News, updates, and dispatches from the neon underground.</p>
+
+        <div class="blog-layout">
+          <div class="blog-main">
+            <div class="blog-list" id="blogList">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+          <aside class="blog-sidebar">
+            <div class="bs-widget">
+              <h4>CATEGORIES</h4>
+              <ul class="tag-list">
+                <li><a href="#" class="tag-link">NEWS <span class="tag-count">24</span></a></li>
+                <li><a href="#" class="tag-link">RELEASES <span class="tag-count">18</span></a></li>
+                <li><a href="#" class="tag-link">ART <span class="tag-count">31</span></a></li>
+                <li><a href="#" class="tag-link">TECH <span class="tag-count">12</span></a></li>
+                <li><a href="#" class="tag-link">COMMUNITY <span class="tag-count">9</span></a></li>
+              </ul>
+            </div>
+            <div class="bs-widget">
+              <h4>TAGS</h4>
+              <div class="tag-cloud">
+                <span class="tag">synthwave</span><span class="tag">darksynth</span>
+                <span class="tag">neon</span><span class="tag">dystopia</span>
+                <span class="tag">megacorp</span><span class="tag">hacker</span>
+                <span class="tag">retrofuture</span><span class="tag">archive</span>
+                <span class="tag">pixelart</span><span class="tag">vaporwave</span>
+              </div>
+            </div>
+            <div class="bs-widget">
+              <h4>ARCHIVE STATS</h4>
+              <div class="bs-stat">Total Posts: <strong>94</strong></div>
+              <div class="bs-stat">This Month: <strong>8</strong></div>
+              <div class="bs-stat">Contributors: <strong>23</strong></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── DOWNLOADS ───── -->
+    <section class="page" id="page-downloads" data-title="DOWNLOADS">
+      <div class="page-body">
+        <h1 class="page-title glitch" data-text="RESOURCES">RESOURCES</h1>
+        <p class="page-desc">Tools, guides, wallpaper packs, and utilities for operatives.</p>
+
+        <div class="dl-categories" id="dlCats">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── ABOUT ───── -->
+    <section class="page" id="page-about" data-title="ABOUT">
+      <div class="page-body">
+        <h1 class="page-title glitch" data-text="ABOUT">ABOUT</h1>
+
+        <div class="about-layout">
+          <div class="about-main">
+            <div class="about-block">
+              <h2>THE ARCHIVE</h2>
+              <p>The Cyberpunk Archive was founded in 2019 as a preservation project for the rapidly expanding genre of cyberpunk art, music, and culture. What began as a personal collection has grown into a living repository maintained by a global community of operatives.</p>
+              <p>We believe that culture should be <a href="#" class="text-link">free and accessible</a>. The archive is non-commercial, community-driven, and will remain online as long as there are people willing to maintain it. <a href="#" class="text-link">Contribute to the archive</a> and join our mission to document the digital underground.</p>
+            </div>
+            <div class="about-block">
+              <h2>MISSION</h2>
+              <p>In a world increasingly dominated by corporate content ecosystems, we believe in preserving the raw, unfiltered output of the underground. No algorithms. No engagement metrics. Just content.</p>
+            </div>
+            <div class="about-block">
+              <h2>TIMELINE</h2>
+              <div class="timeline">
+                <div class="timeline-item">
+                  <span class="tl-year">2019</span>
+                  <div class="tl-content">
+                    <strong>ARCHIVE FOUNDED</strong>
+                    <p>Started as a personal Neocities page. 47 files. 3 visitors per day.</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <span class="tl-year">2020</span>
+                  <div class="tl-content">
+                    <strong>COMMUNITY FORMS</strong>
+                    <p>First IRC channel opens. Community grows to 200+ members organically.</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <span class="tl-year">2021</span>
+                  <div class="tl-content">
+                    <strong>V1.0 LAUNCH</strong>
+                    <p>Full site redesign. Gallery, audio player, and forums go live.</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <span class="tl-year">2023</span>
+                  <div class="tl-content">
+                    <strong>10,000 FILES</strong>
+                    <p>Archive crosses 10,000 files. Server upgrades funded by community donations.</p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <span class="tl-year">2026</span>
+                  <div class="tl-content">
+                    <strong>V2.0 RELEASE</strong>
+                    <p>Complete frontend overhaul. New gallery engine, audio improvements, mobile support.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="about-aside">
+            <div class="about-card">
+              <h4>CONTRIBUTORS</h4>
+              <div class="contributor-list" id="contributorList">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+            <div class="about-card">
+              <h4>TECH STACK</h4>
+              <ul class="tech-list">
+                <li><span class="tl-dot"></span>HTML / CSS / Vanilla JS</li>
+                <li><span class="tl-dot"></span>Node.js backend</li>
+                <li><span class="tl-dot"></span>PostgreSQL database</li>
+                <li><span class="tl-dot"></span>Cloudflare CDN</li>
+                <li><span class="tl-dot"></span>Self-hosted IRC</li>
+              </ul>
+            </div>
+            <div class="about-card ascii-card">
+              <pre class="ascii-art">
+ ░▒▓██████▓▒░
+ ░▒▓█▓▒░░▒▓█▓▒
+ ░▒▓█▓▒░
+ ░▒▓██████▓▒░
+ ░▒▓█▓▒░
+ ░▒▓█▓▒░░▒▓█▓▒
+ ░▒▓██████▓▒░
+              </pre>
+              <div style="text-align:center;font-size:.7rem;color:var(--acc-cyan)">CYBER_ARCHIVE</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── SETTINGS ───── -->
+    <section class="page" id="page-settings" data-title="CUSTOMIZATION">
+      <div class="page-body">
+        <h1 class="page-title glitch" data-text="SETTINGS">SETTINGS</h1>
+        <p class="page-desc">Customize your archive experience. Preferences are saved locally.</p>
+
+        <div class="settings-grid">
+
+          <div class="settings-card">
+            <h3><span class="s-ico">◈</span> ACCENT COLOR</h3>
+            <p class="s-desc">Choose your neon accent color.</p>
+            <div class="theme-swatches">
+              <button class="swatch active" data-theme="cyan" style="--c:#00ffff" onclick="setTheme('cyan')" title="Cyan">
+                <span class="sw-inner"></span>
+              </button>
+              <button class="swatch" data-theme="magenta" style="--c:#ff006e" onclick="setTheme('magenta')" title="Magenta">
+                <span class="sw-inner"></span>
+              </button>
+              <button class="swatch" data-theme="green" style="--c:#39ff14" onclick="setTheme('green')" title="Acid Green">
+                <span class="sw-inner"></span>
+              </button>
+              <button class="swatch" data-theme="purple" style="--c:#9d00ff" onclick="setTheme('purple')" title="Purple">
+                <span class="sw-inner"></span>
+              </button>
+              <button class="swatch" data-theme="orange" style="--c:#ff6b35" onclick="setTheme('orange')" title="Orange">
+                <span class="sw-inner"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3><span class="s-ico">◈</span> EFFECTS</h3>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Scanlines</div>
+                <div class="toggle-sub">CRT scan line overlay</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="scanlineToggle" checked onchange="toggleEffect('scanlines', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Glitch Effects</div>
+                <div class="toggle-sub">RGB shift on headings</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="glitchToggle" checked onchange="toggleEffect('glitch', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Noise Texture</div>
+                <div class="toggle-sub">Film grain background</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="noiseToggle" checked onchange="toggleEffect('noise', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Animations</div>
+                <div class="toggle-sub">All CSS transitions</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="animToggle" checked onchange="toggleEffect('animations', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3><span class="s-ico">◈</span> ACCESSIBILITY</h3>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Reduced Motion</div>
+                <div class="toggle-sub">Minimize animations for accessibility</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="reducedMotion" onchange="toggleEffect('reduced-motion', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">High Contrast</div>
+                <div class="toggle-sub">Increase text contrast</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="highContrast" onchange="toggleEffect('high-contrast', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3><span class="s-ico">◈</span> SIDEBAR</h3>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Compact Mode</div>
+                <div class="toggle-sub">Reduce sidebar padding</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="compactToggle" onchange="toggleEffect('compact', this.checked)">
+                <span class="ts-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-card settings-card-full">
+            <h3><span class="s-ico">◈</span> DATA MANAGEMENT</h3>
+            <div class="data-actions">
+              <button class="btn btn-ghost" onclick="exportPrefs()">EXPORT PREFERENCES</button>
+              <button class="btn btn-ghost" onclick="resetPrefs()">RESET TO DEFAULTS</button>
+            </div>
+            <div class="s-desc" style="margin-top:.75rem">All settings are stored in your browser's localStorage. No data is sent to any server.</div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ───── 404 ───── -->
+    <section class="page" id="page-404" data-title="404">
+      <div class="page-body page-404">
+        <div class="err-code glitch" data-text="404">404</div>
+        <div class="err-msg">PAGE NOT FOUND</div>
+        <div class="err-sub">The file you requested does not exist in this sector of the archive.</div>
+        <div class="matrix-rain" id="matrixRain"></div>
+        <button class="btn btn-primary" onclick="navigateTo('home')" style="margin-top:2rem">RETURN TO HOME</button>
+      </div>
+    </section>
+
+  </main>
+  <!-- ═══════════════════════════════ END MAIN ═══════════════════════════════ -->
+
+  <!-- ── Lightbox ── -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <div class="lb-inner">
+      <button class="lb-nav lb-prev" onclick="lbNav(-1, event)">‹</button>
+      <div class="lb-media">
+        <div class="lb-img-wrap">
+          <div class="lb-placeholder" id="lbPlaceholder"></div>
+        </div>
+        <div class="lb-caption" id="lbCaption"></div>
+      </div>
+      <button class="lb-nav lb-next" onclick="lbNav(1, event)">›</button>
+    </div>
+  </div>
+
+  <!-- ── Notifications ── -->
+  <div class="notifications" id="notifications" aria-live="polite"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
