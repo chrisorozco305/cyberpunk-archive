@@ -366,32 +366,85 @@ function initSearch() {
 }
 
 // ────────────────────────────────────
-// GALLERY
+// GALLERY — Fetches images from API
 // ────────────────────────────────────
+// When the backend is running (npm run dev), images come from SQLite via /api/gallery.
+// Falls back to GALLERY_DATA placeholders if the API is unavailable
+// (e.g. opening index.html directly without a server).
 
-function renderGallery(filter = 'all') {
+// In-memory cache of loaded images — used by the lightbox for navigation
+let galleryItems = [];
+
+async function renderGallery(filter = 'all') {
   const grid = document.getElementById('galleryGrid');
   if (!grid) return;
 
-  const items = filter === 'all' ? GALLERY_DATA : GALLERY_DATA.filter(i => i.cat === filter);
+  // Show loading state while fetching
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
+    <div style="font-size:2rem;margin-bottom:.5rem">⟳</div>
+    LOADING ARCHIVE...
+  </div>`;
 
-  grid.innerHTML = items.map((item, idx) => {
-    const bg = `linear-gradient(135deg, ${item.colors.join(', ')})`;
-    return `
-      <div class="gallery-item" data-idx="${idx}" data-filter="${item.cat}" onclick="openLightbox(${idx})">
-        <div class="gallery-thumb" style="background:${bg}">
-          <span>${item.emoji}</span>
-        </div>
+  try {
+    // Fetch from the Express API
+    const url = filter === 'all'
+      ? '/api/gallery'
+      : `/api/gallery?category=${filter}`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+
+    const items = await res.json();
+    galleryItems = items; // Cache for lightbox navigation
+
+    if (!items.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
+        No images found. Run <code>npm run seed</code> to populate the database.
+      </div>`;
+      return;
+    }
+
+    // Render real images from the API
+    grid.innerHTML = items.map((item, idx) => `
+      <div class="gallery-item" data-idx="${idx}" data-category="${item.category}" onclick="openLightbox(${idx})">
+        <img
+          class="gallery-thumb-img"
+          src="${item.url_small}"
+          alt="${escHtml(item.title)}"
+          loading="lazy"
+          style="width:100%;height:100%;object-fit:cover;display:block;"
+        >
         <div class="gallery-overlay">
           <div class="gallery-info">
-            <div class="gallery-title">${item.title}</div>
-            <div class="gallery-cat">${item.cat.toUpperCase()}</div>
+            <div class="gallery-title">${escHtml(item.title)}</div>
+            <div class="gallery-cat">${item.category.toUpperCase()} · <span style="opacity:.7">Photo by ${escHtml(item.author || 'Unknown')}</span></div>
           </div>
         </div>
-      </div>`;
-  }).join('');
+      </div>`).join('');
 
-  // Filter buttons
+  } catch (err) {
+    // API not available — fall back to hardcoded placeholder data
+    console.warn('API unavailable, using placeholder data:', err.message);
+    galleryItems = GALLERY_DATA;
+
+    grid.innerHTML = GALLERY_DATA.map((item, idx) => {
+      const bg = `linear-gradient(135deg, ${item.colors.join(', ')})`;
+      return `
+        <div class="gallery-item" data-idx="${idx}" onclick="openLightbox(${idx})">
+          <div class="gallery-thumb" style="background:${bg};width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">
+            <span>${item.emoji}</span>
+          </div>
+          <div class="gallery-overlay">
+            <div class="gallery-info">
+              <div class="gallery-title">${item.title}</div>
+              <div class="gallery-cat">${item.cat.toUpperCase()}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Wire up filter buttons (re-attach after each render)
   document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
@@ -419,12 +472,27 @@ function openLightbox(idx) {
 }
 
 function updateLightbox() {
-  // Refresh the lightbox display with current item
-  const item = GALLERY_DATA[lbIndex];
-  const bg = `linear-gradient(135deg, ${item.colors.join(', ')})`;
-  document.getElementById('lbPlaceholder').style.background = bg;
-  document.getElementById('lbPlaceholder').innerHTML = `<span style="font-size:5rem">${item.emoji}</span>`;
-  document.getElementById('lbCaption').textContent = `${item.title} · ${item.cat.toUpperCase()} · ${lbIndex + 1} / ${GALLERY_DATA.length}`;
+  // Refresh the lightbox display with current item.
+  // Handles both real API images (url_regular) and placeholder fallbacks (emoji/colors).
+  const item = galleryItems[lbIndex];
+  const lb = document.getElementById('lbPlaceholder');
+
+  if (item.url_regular) {
+    // Real image from database
+    lb.style.background = '#000';
+    lb.innerHTML = `<img src="${item.url_regular}" alt="${escHtml(item.title)}"
+      style="width:100%;height:100%;object-fit:contain;border-radius:var(--radius);">`;
+    const credit = item.author
+      ? `${item.title} · ${item.category.toUpperCase()} · Photo by ${item.author} on Unsplash · ${lbIndex + 1} / ${galleryItems.length}`
+      : `${item.title} · ${lbIndex + 1} / ${galleryItems.length}`;
+    document.getElementById('lbCaption').textContent = credit;
+  } else {
+    // Placeholder fallback
+    const bg = `linear-gradient(135deg, ${item.colors.join(', ')})`;
+    lb.style.background = bg;
+    lb.innerHTML = `<span style="font-size:5rem">${item.emoji}</span>`;
+    document.getElementById('lbCaption').textContent = `${item.title} · ${item.cat.toUpperCase()} · ${lbIndex + 1} / ${galleryItems.length}`;
+  }
 }
 
 function closeLightbox(e) {
@@ -438,7 +506,7 @@ function lbNav(dir, e) {
   // Navigate to previous (-1) or next (1) image
   // Uses modulo to wrap around (circular navigation)
   e && e.stopPropagation();
-  lbIndex = (lbIndex + dir + GALLERY_DATA.length) % GALLERY_DATA.length;
+  lbIndex = (lbIndex + dir + galleryItems.length) % galleryItems.length;
   updateLightbox();
 }
 
