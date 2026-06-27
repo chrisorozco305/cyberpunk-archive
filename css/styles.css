@@ -1,5 +1,27 @@
 /* ═══════════════════════════════════════════════════════════════
    CYBERPUNK ARCHIVE — STYLES
+   ═══════════════════════════════════════════════════════════════
+
+   This stylesheet implements the full cyberpunk visual language:
+   - Dark base colors with neon accent overlays
+   - CSS Grid/Flexbox for responsive layouts
+   - Glitch effects, scanlines, and animated glow
+   - Theme switching via CSS custom properties (--acc)
+   - Mobile-first responsive design
+   - Accessibility features (reduced motion, high contrast modes)
+
+   KEY PATTERNS:
+   • Color system: --bg-0 (darkest) through --bg-5 (lightest)
+   • Accents: Use --acc variable (dynamically set by theme class)
+   • Timing: --trans (0.25s) for UI, --trans-slow (0.5s) for nav
+   • Glows: Use --acc-glow on hover states
+   • Borders: Typically 1px solid with rgba(255,255,255,0.X) for subtlety
+
+   HOW TO CUSTOMIZE:
+   1. Change accent colors by modifying .theme-X classes
+   2. Adjust timing variables for slower/faster animations
+   3. Modify --sidebar-w to change sidebar width
+   4. All colors/spacing use CSS variables for easy theming
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Fonts ── */

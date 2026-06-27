@@ -1,11 +1,39 @@
 /* ═══════════════════════════════════════════════════════════════
    CYBERPUNK ARCHIVE — APP.JS
+   ═══════════════════════════════════════════════════════════════
+
+   Core application logic for the cyberpunk archive website.
+   Handles all interactivity: page routing, search, audio player,
+   lightbox gallery, preferences, notifications, and animations.
+
+   ARCHITECTURE:
+   1. DATA SECTION: Arrays of content (gallery, playlists, blog posts)
+   2. STATE SECTION: Global variables tracking current page, audio state
+   3. INIT SECTION: DOMContentLoaded setup and event listeners
+   4. ROUTING: Single-page app navigation using hash fragments
+   5. FEATURES: Gallery, audio player, guestbook, settings, etc.
+   6. UTILITIES: Helper functions (notifications, HTML escape, etc.)
+
+   KEY STATE VARIABLES:
+   • currentPage: which page is displayed
+   • isPlaying: audio player state
+   • prefs: user settings (theme, effects) stored in localStorage
+   • currentTrack/currentSeconds: audio playback position
+
+   HOW TO EXTEND:
+   1. Add new data to BLOG_DATA, GALLERY_DATA, etc.
+   2. Create new <section class="page"> in index.html
+   3. Add render function for that page
+   4. Wire it up in routeFromHash() with new page ID
+   5. Add nav link in sidebar
+
+   NOTE: All functions are in global scope for easy onclick handlers.
    ═══════════════════════════════════════════════════════════════ */
 
 'use strict';
 
 // ────────────────────────────────────
-// DATA
+// DATA — Content arrays for all pages
 // ────────────────────────────────────
 
 const GALLERY_DATA = [
@@ -159,18 +187,19 @@ const SEARCH_INDEX = [
 ];
 
 // ────────────────────────────────────
-// STATE
+// STATE — Global app state variables
 // ────────────────────────────────────
+// NOTE: These are intentionally global for easy access in onclick handlers
 
-let currentPage = 'home';
-let currentTrack = 0;
-let isPlaying = false;
-let isShuffle = false;
-let isRepeat = false;
-let playerInterval = null;
-let currentSeconds = 0;
-let lbIndex = 0;
-let prefs = {};
+let currentPage = 'home';           // Current active page (routing)
+let currentTrack = 0;               // Index into PLAYLIST_DATA
+let isPlaying = false;              // Audio player state
+let isShuffle = false;              // Shuffle mode toggle
+let isRepeat = false;               // Repeat mode toggle
+let playerInterval = null;          // setInterval ID for audio tick
+let currentSeconds = 0;             // Current playback position
+let lbIndex = 0;                    // Current image in lightbox
+let prefs = {};                     // User preferences (loaded from localStorage)
 
 // ────────────────────────────────────
 // INIT
@@ -198,39 +227,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ────────────────────────────────────
-// ROUTING
+// ROUTING — Single-page app navigation
 // ────────────────────────────────────
+// Uses URL hash fragments (#page) for routing. Triggered by:
+// - User clicks nav link (onclick handler in HTML)
+// - User visits URL directly (window.onhashchange listener)
+// - User clicks internal link (navigateTo() call)
 
 function routeFromHash() {
+  // Read hash from URL, default to 'home'
   const hash = window.location.hash.slice(1) || 'home';
   const validPages = ['home','gallery','audio','videos','community','blog','downloads','about','settings'];
+
+  // Validate page exists, otherwise show 404
   navigateTo(validPages.includes(hash) ? hash : '404');
 }
 
 function navigateTo(page) {
-  // Close mobile sidebar
+  // Close sidebar on mobile (if user navigates, sidebar should close)
   closeMobileSidebar();
 
-  // Deactivate current
+  // Hide all pages and remove active nav links
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
-  // Activate target
+  // Show target page and scroll to top
   const pageEl = document.getElementById('page-' + page);
   if (pageEl) {
     pageEl.classList.add('active');
     pageEl.scrollIntoView({ block: 'start', behavior: 'instant' });
   }
 
+  // Highlight active nav link
   const navLink = document.querySelector(`.nav-link[data-page="${page}"]`);
   if (navLink) navLink.classList.add('active');
 
+  // Update state and URL
   currentPage = page;
   if (history.pushState) history.pushState(null, '', '#' + page);
 
-  // Page-specific init
-  if (page === 'home') initCounters();
-  if (page === '404')  initMatrixRain();
+  // Run page-specific setup (animations, data fetches, etc.)
+  if (page === 'home') initCounters();        // Animate stat counters
+  if (page === '404')  initMatrixRain();      // Generate matrix effect
 }
 
 // ────────────────────────────────────
@@ -286,8 +324,11 @@ function initNavLinks() {
 }
 
 // ────────────────────────────────────
-// SEARCH
+// SEARCH — Live sidebar search
 // ────────────────────────────────────
+// User types in search box, matches pages in real-time
+// Searches against SEARCH_INDEX array (page titles and descriptions)
+// Clicking a result navigates to that page
 
 function initSearch() {
   const input = document.getElementById('searchInput');
@@ -296,8 +337,10 @@ function initSearch() {
 
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
+    // If search is empty, hide results
     if (!q) { results.classList.remove('visible'); return; }
 
+    // Filter SEARCH_INDEX for matches in label or description
     const matches = SEARCH_INDEX.filter(item =>
       item.label.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q)
     );
@@ -359,17 +402,24 @@ function renderGallery(filter = 'all') {
 }
 
 // ────────────────────────────────────
-// LIGHTBOX
+// LIGHTBOX — Full-screen image viewer
 // ────────────────────────────────────
+// Shows gallery items in a modal overlay with navigation
+// Keyboard shortcuts:
+//   ← / → arrows: previous/next image
+//   Esc: close lightbox
+// Click outside image to close (except on buttons)
 
 function openLightbox(idx) {
+  // Set current index and show modal
   lbIndex = idx;
   updateLightbox();
   document.getElementById('lightbox').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';  // Prevent body scroll while viewing
 }
 
 function updateLightbox() {
+  // Refresh the lightbox display with current item
   const item = GALLERY_DATA[lbIndex];
   const bg = `linear-gradient(135deg, ${item.colors.join(', ')})`;
   document.getElementById('lbPlaceholder').style.background = bg;
@@ -378,12 +428,15 @@ function updateLightbox() {
 }
 
 function closeLightbox(e) {
+  // Close lightbox. Allow click-outside-to-close, but not on buttons
   if (e && e.target !== document.getElementById('lightbox') && !e.target.closest('.lb-close')) return;
   document.getElementById('lightbox').classList.remove('open');
-  document.body.style.overflow = '';
+  document.body.style.overflow = '';  // Restore body scroll
 }
 
 function lbNav(dir, e) {
+  // Navigate to previous (-1) or next (1) image
+  // Uses modulo to wrap around (circular navigation)
   e && e.stopPropagation();
   lbIndex = (lbIndex + dir + GALLERY_DATA.length) % GALLERY_DATA.length;
   updateLightbox();
@@ -397,8 +450,25 @@ document.addEventListener('keydown', e => {
 });
 
 // ────────────────────────────────────
-// AUDIO PLAYER
+// AUDIO PLAYER — Full music playback UI
 // ────────────────────────────────────
+// This is a full UI mock-up with simulated playback. The player:
+// - Displays track info, cover art, current time
+// - Allows track selection, play/pause, seek, shuffle, repeat, volume
+// - Updates a progress bar using setInterval (tickPlayer)
+// - Animates a visualizer with random bar heights
+//
+// HOW IT WORKS:
+// 1. selectTrack(idx) sets currentTrack and loads track metadata
+// 2. togglePlay() starts/stops a setInterval that calls tickPlayer()
+// 3. tickPlayer() increments currentSeconds and updates progress bar
+// 4. When track ends, play next (or repeat current if isRepeat)
+// 5. seekAudio() lets user click progress bar to jump to time
+//
+// TO CONNECT REAL AUDIO:
+// - Create an <audio> element in the HTML
+// - Replace tickPlayer() with actual playback time from audio.currentTime
+// - Use audio.play() / audio.pause() instead of timer logic
 
 function renderPlaylist() {
   const ul = document.getElementById('playlist');
@@ -724,21 +794,26 @@ function submitGuestbook() {
 }
 
 // ────────────────────────────────────
-// SETTINGS / PREFS
+// SETTINGS / PREFS — User preferences
 // ────────────────────────────────────
+// All preferences are stored in browser localStorage as JSON
+// Format: { theme: 'cyan', scanlines: true, ... }
+// Persists across sessions — settings stick around after refresh
 
 const DEFAULT_PREFS = {
-  theme: 'cyan',
-  scanlines: true,
-  glitch: true,
-  noise: true,
-  animations: true,
-  reducedMotion: false,
-  highContrast: false,
-  compact: false,
+  theme: 'cyan',           // Accent color theme
+  scanlines: true,         // CRT-style horizontal lines
+  glitch: true,            // RGB shift effect on titles
+  noise: true,             // Film grain texture
+  animations: true,        // CSS transitions and keyframes
+  reducedMotion: false,    // Disable animations for accessibility
+  highContrast: false,     // Increase text contrast
+  compact: false,          // Reduce sidebar padding
 };
 
 function loadPrefs() {
+  // Load from localStorage, merge with defaults
+  // If localStorage is unavailable (private mode), use defaults
   try {
     const stored = JSON.parse(localStorage.getItem('cyberArchivePrefs') || '{}');
     prefs = { ...DEFAULT_PREFS, ...stored };
