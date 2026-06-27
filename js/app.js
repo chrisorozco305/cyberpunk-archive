@@ -794,16 +794,25 @@ function startVizAnimation() {
   ).join('');
 
   function animateBars() {
+    const playing = isAudioPlaying();
     const bars = container.querySelectorAll('.viz-bar');
     bars.forEach(bar => {
-      const h = isPlaying
+      const h = playing
         ? (Math.random() * 70 + 10) + '%'
         : (Math.random() * 8 + 4) + '%';
       bar.style.height = h;
     });
-    setTimeout(animateBars, isPlaying ? 120 : 800);
+    setTimeout(animateBars, playing ? 120 : 800);
   }
   animateBars();
+}
+
+// True while the hidden YouTube player is actively playing audio.
+// Used by the visualizer to drive the bars.
+function isAudioPlaying() {
+  return !!(ytPlayer && ytReady &&
+            ytPlayer.getPlayerState &&
+            ytPlayer.getPlayerState() === YT.PlayerState.PLAYING);
 }
 
 // ────────────────────────────────────
