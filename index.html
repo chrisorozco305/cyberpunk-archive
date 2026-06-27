@@ -752,6 +752,12 @@
   <!-- ── Notifications ── -->
   <div class="notifications" id="notifications" aria-live="polite"></div>
 
+  <!-- Hidden YouTube IFrame player — audio plays from here, controls are in the UI above.
+       Kept at a real size (so playback isn't blocked) but parked off-screen. -->
+  <div id="ytPlayerHost" style="position:fixed;bottom:0;left:-9999px;width:200px;height:200px;" aria-hidden="true">
+    <div id="ytPlayerContainer"></div>
+  </div>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

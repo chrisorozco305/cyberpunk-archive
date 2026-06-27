@@ -192,12 +192,13 @@ const SEARCH_INDEX = [
 // NOTE: These are intentionally global for easy access in onclick handlers
 
 let currentPage = 'home';           // Current active page (routing)
-let currentTrack = 0;               // Index into PLAYLIST_DATA
-let isPlaying = false;              // Audio player state
-let isShuffle = false;              // Shuffle mode toggle
-let isRepeat = false;               // Repeat mode toggle
-let playerInterval = null;          // setInterval ID for audio tick
-let currentSeconds = 0;             // Current playback position
+let currentTrack   = 0;
+let isShuffle      = false;
+let isRepeat       = false;
+let ytPlayer       = null;          // YouTube IFrame player instance
+let ytReady        = false;         // true after onYouTubeIframeAPIReady fires
+let progressTimer  = null;          // setInterval polling getCurrentTime()
+let pendingVideoId = null;          // queued video if API wasn't ready yet
 let lbIndex = 0;                    // Current image in lightbox
 let prefs = {};                     // User preferences (loaded from localStorage)
 
@@ -518,25 +519,96 @@ document.addEventListener('keydown', e => {
 });
 
 // ────────────────────────────────────
-// AUDIO PLAYER — Full music playback UI
+// AUDIO PLAYER — YouTube IFrame API
 // ────────────────────────────────────
-// This is a full UI mock-up with simulated playback. The player:
-// - Displays track info, cover art, current time
-// - Allows track selection, play/pause, seek, shuffle, repeat, volume
-// - Updates a progress bar using setInterval (tickPlayer)
-// - Animates a visualizer with random bar heights
-//
-// HOW IT WORKS:
-// 1. selectTrack(idx) sets currentTrack and loads track metadata
-// 2. togglePlay() starts/stops a setInterval that calls tickPlayer()
-// 3. tickPlayer() increments currentSeconds and updates progress bar
-// 4. When track ends, play next (or repeat current if isRepeat)
-// 5. seekAudio() lets user click progress bar to jump to time
-//
-// TO CONNECT REAL AUDIO:
-// - Create an <audio> element in the HTML
-// - Replace tickPlayer() with actual playback time from audio.currentTime
-// - Use audio.play() / audio.pause() instead of timer logic
+// A hidden YouTube player sits off-screen (#ytPlayerContainer in index.html).
+// The YouTube IFrame API loads into it; all UI controls (play, seek, volume)
+// call ytPlayer methods. Progress bar polls getCurrentTime() every 500 ms.
+
+// Builds the hidden YouTube player. Guarded so it only ever runs once.
+function initYTPlayer() {
+  if (ytPlayer || !window.YT || !window.YT.Player) return;
+  ytPlayer = new YT.Player('ytPlayerContainer', {
+    height: '200',
+    width: '200',
+    videoId: '',
+    playerVars: { autoplay: 0, controls: 0, rel: 0, modestbranding: 1, playsinline: 1 },
+    events: {
+      onReady:       onYTReady,
+      onStateChange: onYTStateChange,
+    },
+  });
+}
+
+// YouTube calls this once its IFrame API finishes loading...
+window.onYouTubeIframeAPIReady = initYTPlayer;
+
+// ...but if the API loaded before this script ran, that callback is missed.
+// Poll briefly as a fallback so the player always gets created.
+if (window.YT && window.YT.Player) {
+  initYTPlayer();
+} else {
+  const _ytPoll = setInterval(() => {
+    if (window.YT && window.YT.Player) {
+      clearInterval(_ytPoll);
+      initYTPlayer();
+    }
+  }, 100);
+}
+
+function onYTReady(event) {
+  ytReady = true;
+  const vol = document.getElementById('volumeSlider');
+  if (vol) event.target.setVolume(parseInt(vol.value, 10));
+  if (pendingVideoId) {
+    ytPlayer.cueVideoById(pendingVideoId);
+    pendingVideoId = null;
+  }
+}
+
+function onYTStateChange(event) {
+  const S = YT.PlayerState;
+  if (event.data === S.PLAYING) {
+    document.getElementById('playBtn').textContent = '⏸';
+    document.querySelector('.player-main')?.classList.add('playing');
+    startProgressPolling();
+  } else if (event.data === S.PAUSED) {
+    document.getElementById('playBtn').textContent = '▶';
+    document.querySelector('.player-main')?.classList.remove('playing');
+    stopProgressPolling();
+  } else if (event.data === S.ENDED) {
+    stopProgressPolling();
+    document.getElementById('playBtn').textContent = '▶';
+    if (isRepeat) { ytPlayer.seekTo(0); ytPlayer.playVideo(); }
+    else           { nextTrack(); }
+  }
+}
+
+function startProgressPolling() {
+  stopProgressPolling();
+  progressTimer = setInterval(pollProgress, 500);
+}
+
+function stopProgressPolling() {
+  clearInterval(progressTimer);
+  progressTimer = null;
+}
+
+function pollProgress() {
+  if (!ytPlayer || !ytReady) return;
+  const current  = ytPlayer.getCurrentTime() || 0;
+  const duration = ytPlayer.getDuration()    || 0;
+  if (!duration) return;
+  updateProgress((current / duration) * 100);
+  document.getElementById('playerCurrentTime').textContent = fmtTime(current);
+  document.getElementById('playerDuration').textContent    = fmtTime(duration);
+}
+
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 // In-memory cache of tracks loaded from the API
 let playlistTracks = [];
@@ -554,19 +626,22 @@ async function renderPlaylist() {
     playlistTracks = PLAYLIST_DATA.map(t => ({ ...t, dur: t.dur }));
   }
 
-  ul.innerHTML = playlistTracks.map((t, i) => `
-    <li class="pl-item ${i === 0 ? 'active' : ''}" onclick="selectTrack(${i})">
-      <span class="pl-num">${i === 0 ? '▶' : i + 1}</span>
-      <div class="pl-info">
-        <div class="pl-track">${escHtml(t.title)}</div>
-        <div class="pl-artist">${escHtml(t.artist || '')}</div>
-      </div>
-      <span class="pl-dur">${t.duration || t.dur || ''}</span>
-    </li>`).join('');
+  ul.innerHTML = playlistTracks.map((t, i) => {
+    const thumb = t.youtube_id
+      ? `<img class="pl-thumb" src="https://img.youtube.com/vi/${t.youtube_id}/mqdefault.jpg" alt="">`
+      : `<span class="pl-num">${i + 1}</span>`;
+    return `
+      <li class="pl-item ${i === 0 ? 'active' : ''}" onclick="selectTrack(${i})">
+        ${thumb}
+        <div class="pl-info">
+          <div class="pl-track">${escHtml(t.title)}</div>
+          <div class="pl-artist">${escHtml(t.artist || '')}</div>
+        </div>
+      </li>`;
+  }).join('');
 
   document.getElementById('playlistCount').textContent = playlistTracks.length + ' TRACKS';
 
-  // Load the first track into the player display
   if (playlistTracks.length) updatePlayerDisplay(0);
 }
 
@@ -592,22 +667,22 @@ function updatePlayerDisplay(idx) {
   const t = playlistTracks[idx];
   if (!t) return;
 
-  document.getElementById('playerTrack').textContent    = t.title;
-  document.getElementById('playerArtist').textContent   = t.artist || '';
-  document.getElementById('playerAlbum').textContent    = t.genre  || '';
-  document.getElementById('playerDuration').textContent = t.duration || t.dur || '';
+  document.getElementById('playerTrack').textContent  = t.title;
+  document.getElementById('playerArtist').textContent = t.artist || '';
+  document.getElementById('playerAlbum').textContent  = t.genre  || '';
+  document.getElementById('playerDuration').textContent = '--:--';
+  document.getElementById('playerCurrentTime').textContent = '0:00';
 
-  // If the track has a YouTube ID, embed the video in the cover area
+  // Show YouTube thumbnail as a still image, filling the whole square.
+  // maxresdefault is 16:9 with no black bars; fall back to mqdefault (also 16:9)
+  // if a video has no max-res thumbnail. object-fit:cover crops to the square.
   const cover = document.getElementById('playerCover');
   if (t.youtube_id) {
-    cover.innerHTML = `
-      <iframe
-        width="100%" height="100%"
-        src="https://www.youtube.com/embed/${t.youtube_id}?autoplay=1"
-        style="border:0;border-radius:var(--radius);"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen>
-      </iframe>`;
+    cover.innerHTML = `<img
+      src="https://img.youtube.com/vi/${t.youtube_id}/maxresdefault.jpg"
+      onerror="this.onerror=null;this.src='https://img.youtube.com/vi/${t.youtube_id}/mqdefault.jpg';"
+      alt="${escHtml(t.title)}"
+      style="width:100%;height:100%;object-fit:cover;display:block;">`;
   } else {
     cover.innerHTML = `<div class="cover-art">♫</div>`;
   }
@@ -615,88 +690,65 @@ function updatePlayerDisplay(idx) {
 
 function selectTrack(idx) {
   currentTrack = idx;
+  const t = playlistTracks[idx];
+  if (!t) return;
 
-  // Stop any existing playback timer
-  clearInterval(playerInterval);
-  isPlaying = false;
-  currentSeconds = 0;
-  updateProgress(0);
-  document.getElementById('playBtn').textContent = '▶';
-
-  // Update playlist highlight
+  // Highlight selected row
   document.querySelectorAll('.pl-item').forEach((el, i) => {
     el.classList.toggle('active', i === idx);
-    el.querySelector('.pl-num').textContent = i === idx ? '▶' : i + 1;
   });
 
-  // Load track info + embed YouTube if available
+  // Update cover art + metadata
   updatePlayerDisplay(idx);
-  notify(`Now playing: ${playlistTracks[idx]?.title || ''}`, 'success');
-}
+  updateProgress(0);
 
-function togglePlay() {
-  isPlaying = !isPlaying;
-  const btn = document.getElementById('playBtn');
-  btn.textContent = isPlaying ? '⏸' : '▶';
-
-  const cover = document.querySelector('.player-main');
-  cover && cover.classList.toggle('playing', isPlaying);
-
-  if (isPlaying) {
-    playerInterval = setInterval(tickPlayer, 1000);
-  } else {
-    clearInterval(playerInterval);
-  }
-}
-
-function tickPlayer() {
-  const t = PLAYLIST_DATA[currentTrack];
-  const parts = t.dur.split(':').map(Number);
-  const totalSec = parts[0] * 60 + parts[1];
-  currentSeconds++;
-
-  if (currentSeconds >= totalSec) {
-    if (isRepeat) {
-      currentSeconds = 0;
+  // Load into the hidden YouTube player and auto-play
+  if (t.youtube_id) {
+    if (ytReady && ytPlayer) {
+      ytPlayer.loadVideoById(t.youtube_id);   // loadVideoById autoplays
     } else {
-      nextTrack();
-      return;
+      pendingVideoId = t.youtube_id;           // queued until API ready
     }
   }
 
-  const pct = (currentSeconds / totalSec) * 100;
-  updateProgress(pct);
-  const m = Math.floor(currentSeconds / 60);
-  const s = currentSeconds % 60;
-  document.getElementById('playerCurrentTime').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  notify(`Now playing: ${t.title}`, 'success');
+}
+
+function togglePlay() {
+  if (!ytPlayer || !ytReady) return;
+  const state = ytPlayer.getPlayerState();
+  if (state === YT.PlayerState.PLAYING) {
+    ytPlayer.pauseVideo();
+  } else {
+    ytPlayer.playVideo();
+  }
 }
 
 function updateProgress(pct) {
-  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressBar').style.width  = pct + '%';
   document.getElementById('progressThumb').style.left = pct + '%';
 }
 
 function seekAudio(e) {
-  const bar = document.getElementById('playerProgress');
-  const rect = bar.getBoundingClientRect();
-  const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-  const t = PLAYLIST_DATA[currentTrack];
-  const parts = t.dur.split(':').map(Number);
-  currentSeconds = Math.floor((pct / 100) * (parts[0] * 60 + parts[1]));
+  if (!ytPlayer || !ytReady) return;
+  const bar      = document.getElementById('playerProgress');
+  const rect     = bar.getBoundingClientRect();
+  const pct      = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+  const duration = ytPlayer.getDuration() || 0;
+  if (!duration) return;
+  ytPlayer.seekTo((pct / 100) * duration, true);
   updateProgress(pct);
 }
 
 function prevTrack() {
-  currentTrack = (currentTrack - 1 + PLAYLIST_DATA.length) % PLAYLIST_DATA.length;
+  currentTrack = (currentTrack - 1 + playlistTracks.length) % playlistTracks.length;
   selectTrack(currentTrack);
 }
 
 function nextTrack() {
-  if (isShuffle) {
-    currentTrack = Math.floor(Math.random() * PLAYLIST_DATA.length);
-  } else {
-    currentTrack = (currentTrack + 1) % PLAYLIST_DATA.length;
-  }
+  currentTrack = isShuffle
+    ? Math.floor(Math.random() * playlistTracks.length)
+    : (currentTrack + 1) % playlistTracks.length;
   selectTrack(currentTrack);
 }
 
@@ -723,6 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (vol) {
     vol.addEventListener('input', () => {
       document.getElementById('volVal').textContent = vol.value + '%';
+      if (ytPlayer && ytReady) ytPlayer.setVolume(parseInt(vol.value, 10));
     });
   }
 });

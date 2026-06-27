@@ -1334,6 +1334,18 @@ img { max-width: 100%; display: block; }
 .pl-num { font-size: 0.65rem; color: var(--text-3); width: 20px; text-align: center; flex-shrink: 0; }
 .pl-item.active .pl-num { color: var(--acc); }
 
+.pl-thumb {
+  width: 40px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.pl-item:hover .pl-thumb,
+.pl-item.active .pl-thumb { opacity: 1; }
+
 .pl-info { flex: 1; overflow: hidden; }
 .pl-track { font-size: 0.72rem; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-artist { font-size: 0.62rem; color: var(--text-3); }
