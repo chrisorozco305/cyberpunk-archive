@@ -363,12 +363,12 @@
         <h1 class="page-title glitch" data-text="VIDEO ARCHIVE">VIDEO ARCHIVE</h1>
         <p class="page-desc">Curated cyberpunk media — films, trailers, fan cuts, and transmissions from the grid.</p>
 
-        <div class="video-categories">
-          <button class="filter-btn active">ALL</button>
-          <button class="filter-btn">FILMS</button>
-          <button class="filter-btn">TRAILERS</button>
-          <button class="filter-btn">FAN EDITS</button>
-          <button class="filter-btn">DOCS</button>
+        <div class="video-categories" id="videoFilters">
+          <button class="filter-btn active" data-filter="all"      onclick="filterVideos(this)">ALL</button>
+          <button class="filter-btn"        data-filter="Film"     onclick="filterVideos(this)">FILMS</button>
+          <button class="filter-btn"        data-filter="Trailer"  onclick="filterVideos(this)">TRAILERS</button>
+          <button class="filter-btn"        data-filter="Fan Edit" onclick="filterVideos(this)">FAN EDITS</button>
+          <button class="filter-btn"        data-filter="Doc"      onclick="filterVideos(this)">DOCS</button>
         </div>
 
         <div class="video-grid" id="videoGrid">

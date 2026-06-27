@@ -268,8 +268,9 @@ function navigateTo(page) {
   if (history.pushState) history.pushState(null, '', '#' + page);
 
   // Run page-specific setup (animations, data fetches, etc.)
-  if (page === 'home') initCounters();        // Animate stat counters
-  if (page === '404')  initMatrixRain();      // Generate matrix effect
+  if (page === 'home')   initCounters();
+  if (page === '404')    initMatrixRain();
+  if (page === 'videos') renderVideos();      // Re-fetch each time so new videos appear
 }
 
 // ────────────────────────────────────
@@ -878,69 +879,71 @@ function isAudioPlaying() {
 // We build a YouTube embed URL from that ID.
 // Falls back to placeholder cards if API is unavailable.
 
+// In-memory cache so filtering doesn't need a new fetch
+let allVideos = [];
+
 async function renderVideos() {
   const grid = document.getElementById('videoGrid');
   if (!grid) return;
 
-  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
-    <div style="font-size:2rem;margin-bottom:.5rem">⟳</div>LOADING...
-  </div>`;
-
-  try {
-    const res = await fetch('/api/videos');
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const videos = await res.json();
-
-    if (!videos.length) {
-      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
-        No videos found. Run <code>npm run seed:videos</code> to populate.
-      </div>`;
-      return;
+  // Only fetch if we don't have data yet
+  if (!allVideos.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
+      <div style="font-size:2rem;margin-bottom:.5rem">⟳</div>LOADING...
+    </div>`;
+    try {
+      const res = await fetch('/api/videos');
+      if (!res.ok) throw new Error(`API ${res.status}`);
+      allVideos = await res.json();
+    } catch (err) {
+      console.warn('Videos API unavailable:', err.message);
+      allVideos = [];
     }
-
-    grid.innerHTML = videos.map(v => `
-      <div class="video-card">
-        <div class="video-embed-wrap" style="position:relative;aspect-ratio:16/9;background:#000;">
-          <!-- Lazy-load iframe: only loads when user clicks the thumbnail -->
-          <img
-            class="video-thumb-img"
-            src="https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg"
-            alt="${escHtml(v.title)}"
-            style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
-            onclick="loadYouTubeEmbed(this, '${v.youtube_id}')"
-          >
-          <!-- Play button overlay -->
-          <div class="video-play-overlay" onclick="loadYouTubeEmbed(this.parentElement.querySelector('img'), '${v.youtube_id}')">▶</div>
-        </div>
-        <div class="video-meta">
-          <div class="video-title">${escHtml(v.title)}</div>
-          <div class="video-info">
-            <span class="video-cat">${v.category}</span>
-          </div>
-        </div>
-      </div>`).join('');
-
-  } catch (err) {
-    // Fallback to hardcoded placeholder data
-    console.warn('Videos API unavailable, using placeholder data:', err.message);
-    grid.innerHTML = VIDEO_DATA.map(v => {
-      const bg = `linear-gradient(135deg, ${v.colors.join(', ')})`;
-      return `
-        <div class="video-card">
-          <div class="video-thumb" style="background:${bg};aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:3rem;">
-            <span>${v.emoji}</span>
-            <div class="video-play-overlay">▶</div>
-          </div>
-          <div class="video-meta">
-            <div class="video-title">${v.title}</div>
-            <div class="video-info">
-              <span class="video-dur">${v.dur}</span>
-              <span class="video-cat">${v.cat}</span>
-            </div>
-          </div>
-        </div>`;
-    }).join('');
   }
+
+  displayVideos(allVideos);
+}
+
+function displayVideos(videos) {
+  const grid = document.getElementById('videoGrid');
+  if (!grid) return;
+
+  if (!videos.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3)">
+      No videos in this category yet.
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = videos.map(v => `
+    <div class="video-card">
+      <div class="video-embed-wrap" style="position:relative;aspect-ratio:16/9;background:#000;">
+        <img
+          class="video-thumb-img"
+          src="https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg"
+          alt="${escHtml(v.title)}"
+          style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
+          onclick="loadYouTubeEmbed(this, '${v.youtube_id}')"
+        >
+        <div class="video-play-overlay" onclick="loadYouTubeEmbed(this.parentElement.querySelector('img'), '${v.youtube_id}')">▶</div>
+      </div>
+      <div class="video-meta">
+        <div class="video-title">${escHtml(v.title)}</div>
+        <div class="video-info">
+          <span class="video-cat">${v.category}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterVideos(btn) {
+  // Update active tab
+  document.querySelectorAll('#videoFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const filter = btn.dataset.filter;
+  const filtered = filter === 'all' ? allVideos : allVideos.filter(v => v.category === filter);
+  displayVideos(filtered);
 }
 
 // Replace thumbnail with actual YouTube embed iframe when user clicks play
