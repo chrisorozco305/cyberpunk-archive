@@ -9,7 +9,8 @@
     "dev": "node --experimental-sqlite --watch server/server.js",
     "seed": "node --experimental-sqlite server/seed.js",
     "seed:videos": "node --experimental-sqlite server/seed-videos.js",
-    "seed:playlist": "node --experimental-sqlite server/seed-playlist.js"
+    "seed:playlist": "node --experimental-sqlite server/seed-playlist.js",
+    "seed:1980": "node --experimental-sqlite server/seed-playlist-1980.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

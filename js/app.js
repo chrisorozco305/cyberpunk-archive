@@ -618,7 +618,7 @@ async function renderPlaylist() {
   if (!ul) return;
 
   try {
-    const res = await fetch('/api/playlist');
+    const res = await fetch('/api/playlist?name=Cyberpunk+2077');
     if (!res.ok) throw new Error(`API ${res.status}`);
     playlistTracks = await res.json();
   } catch {
@@ -645,22 +645,78 @@ async function renderPlaylist() {
   if (playlistTracks.length) updatePlayerDisplay(0);
 }
 
+const PLAYLIST_CARDS = [
+  {
+    name:   'Cyberpunk 2077',
+    artist: 'Official Soundtrack',
+    year:   '2020',
+    img:    'https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg',
+  },
+  {
+    name:   'Cyberpunk 1980',
+    artist: 'Synthwave · Darksynth · Retrowave',
+    year:   '2024',
+    img:    '/1980.jpg',
+  },
+];
+
 function renderAlbums() {
   const grid = document.getElementById('albumGrid');
   if (!grid) return;
 
-  grid.innerHTML = ALBUM_DATA.map(a => {
-    const bg = `linear-gradient(135deg, ${a.colors.join(', ')})`;
-    return `
-      <div class="album-card" onclick="notify('Playing album: ${a.title}', 'success')">
-        <div class="album-cover" style="background:${bg}">${a.emoji}</div>
-        <div class="album-info">
-          <div class="album-title">${a.title}</div>
-          <div class="album-artist">${a.artist}</div>
-          <div class="album-year">${a.year}</div>
-        </div>
-      </div>`;
-  }).join('');
+  grid.innerHTML = PLAYLIST_CARDS.map(p => `
+    <div class="album-card" onclick="loadPlaylist('${p.name}')">
+      <div class="album-cover" style="background:#000;padding:0;">
+        <img
+          src="${p.img}"
+          alt="${p.name}"
+          style="width:100%;height:100%;object-fit:cover;display:block;">
+      </div>
+      <div class="album-info">
+        <div class="album-title">${p.name}</div>
+        <div class="album-artist">${p.artist}</div>
+        <div class="album-year">${p.year}</div>
+      </div>
+    </div>`).join('');
+}
+
+// Load a named playlist into the player and start from track 0
+async function loadPlaylist(name) {
+  const ul = document.getElementById('playlist');
+  if (ul) ul.innerHTML = `<li style="padding:1rem;color:var(--text-3)">Loading...</li>`;
+
+  try {
+    const res = await fetch(`/api/playlist?name=${encodeURIComponent(name)}`);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    playlistTracks = await res.json();
+  } catch {
+    notify('Failed to load playlist', 'error');
+    return;
+  }
+
+  // Re-render the track list
+  const list = document.getElementById('playlist');
+  if (list) {
+    list.innerHTML = playlistTracks.map((t, i) => {
+      const thumb = t.youtube_id
+        ? `<img class="pl-thumb" src="https://img.youtube.com/vi/${t.youtube_id}/mqdefault.jpg" alt="">`
+        : `<span class="pl-num">${i + 1}</span>`;
+      return `
+        <li class="pl-item ${i === 0 ? 'active' : ''}" onclick="selectTrack(${i})">
+          ${thumb}
+          <div class="pl-info">
+            <div class="pl-track">${escHtml(t.title)}</div>
+            <div class="pl-artist">${escHtml(t.artist || '')}</div>
+          </div>
+        </li>`;
+    }).join('');
+    document.getElementById('playlistCount').textContent = playlistTracks.length + ' TRACKS';
+  }
+
+  // Scroll up to player and start first track
+  document.querySelector('.player-layout')?.scrollIntoView({ behavior: 'smooth' });
+  if (playlistTracks.length) selectTrack(0);
+  notify(`Loaded: ${name}`, 'success');
 }
 
 function updatePlayerDisplay(idx) {
