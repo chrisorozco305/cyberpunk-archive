@@ -1,144 +1,109 @@
-# CYBERPUNK ARCHIVE
+# Cyberpunk Archive
 
-A fully functional, neon-drenched digital archive website celebrating cyberpunk culture. Built with vanilla HTML, CSS, and JavaScript — no frameworks, no build tools, no dependencies. Just pure dystopian vibes.
+A designed interface for a fictional media archive, backed by a real SQLite API.
 
-<img src="./preview.png" alt="Screenshot of Cyberpunk Archive homepage" width="100%" style="border-radius: 8px; border: 1px solid #00e5ff; box-shadow: 0 0 20px rgba(0,229,255,0.3);">
+<img src="./preview.png" alt="Cyberpunk Archive homepage" width="100%">
 
-**Features:** Sidebar navigation • Media gallery with lightbox • Audio player with visualizer • Blog/news • Community guestbook • Customizable themes • localStorage persistence • Fully responsive
+Ten pages of neon-terminal UI — gallery, audio player, video library, blog, community, settings — built as a vanilla HTML/CSS/JS frontend over a small Express + SQLite backend. Images are pulled from Unsplash. Audio and video play through the YouTube IFrame API.
 
-## What is this?
+The archive's *content* is invented: the file counts, contributors, blog posts, and downloads are set dressing. The infrastructure underneath is not.
 
-Think of it as a museum of the digital underground. It's got:
-- **9 fully functional pages** (Home, Gallery, Audio Player, Videos, Community, Blog, Downloads, About, Settings)
-- **A slick sidebar** with collapsible nav groups and live search
-- **A working audio player** with playlist, shuffle, repeat, visualizer bars
-- **Image gallery** with lightbox and category filters
-- **Guestbook** where visitors can sign in
-- **5 accent color themes** that you can switch between
-- **Customizable effects** — toggle scanlines, glitch, noise, animations
-- **localStorage persistence** — your settings stick around
-- **Fully responsive** — looks great on desktop, tablet, and mobile
-- **Zero external dependencies** — doesn't need npm, webpack, or anything else
+---
 
-## Getting started
+## Architecture
 
-### Option 1: Just open it (easiest)
-Double-click `index.html` and it opens in your browser. Works immediately.
+Two things here are worth more than the styling.
 
-### Option 2: Run a local server (recommended for full features)
-```bash
-cd C:\Users\user\Documents\cyberpunk-archive
-npx serve
-```
-Then visit `http://localhost:3000`
+**The frontend degrades to a static site.** Every data-backed view — gallery, playlist, videos — tries its API endpoint first and falls back to a hardcoded array on any failure:
 
-Or with Python:
-```bash
-python -m http.server 8000
-# Then visit http://localhost:8000
+```js
+try {
+  const res = await fetch('/api/gallery');
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  renderFromDatabase(await res.json());
+} catch (err) {
+  console.warn('API unavailable, using placeholder data:', err.message);
+  renderFromPlaceholders(GALLERY_DATA);
+}
 ```
 
-## File structure
+So `index.html` opened straight off disk, with no Node installed, is a working site with gradient placeholders. Start the server and the same views fill with real Unsplash photos and a seeded playlist. One codebase, two modes, no build step in either.
+
+**SQLite comes from Node itself.** `node:sqlite` (Node 22.5+, behind `--experimental-sqlite`) means no `better-sqlite3`, no native compilation, no prebuilt binaries to fight. Total dependency count is three: `express`, `cors`, `dotenv`.
+
+The audio player keeps a single YouTube iframe alive across navigation by physically moving the DOM node into a mini-player when you leave the audio page, so playback doesn't cut when you browse elsewhere.
+
+---
+
+## Requirements
+
+- **Node.js 22.5.0 or newer** — required for `node:sqlite`
+- An [Unsplash API key](https://unsplash.com/developers) (free tier: 50 requests/hour) if you want real gallery images
+
+---
+
+## Quick start
+
+### Static only — no install
+
+Open `index.html` in a browser. Everything renders from the built-in placeholder data. Themes, routing, lightbox, and settings all work.
+
+### Full stack
+
+```bash
+npm install
+cp .env.example .env        # then paste your Unsplash key into it
+npm run seed                # fetch ~250 images from Unsplash into SQLite
+npm run seed:playlist       # seed the Cyberpunk 2077 soundtrack
+npm run seed:1980           # seed the Cyberpunk 1980 synthwave playlist
+npm run seed:videos         # seed the video library
+npm run dev                 # http://localhost:3000
+```
+
+`npm run dev` watches for changes; `npm start` doesn't. The database file is created automatically at `database/archive.db` and is gitignored.
+
+Re-running the seeds is safe — gallery inserts use `INSERT OR IGNORE` keyed on the Unsplash photo ID, and the playlist seeds clear their own rows first.
+
+---
+
+## API
+
+| Method | Endpoint | Notes |
+|---|---|---|
+| `GET` | `/api/gallery` | Supports `?category=` (`wallpaper`, `concept`, `screenshot`, `fanart`) and `?limit=` |
+| `GET` | `/api/gallery/categories` | Image count per category |
+| `GET` | `/api/gallery/:id` | Single image |
+| `GET` | `/api/playlist` | Supports `?name=Cyberpunk+2077` |
+| `GET` | `/api/playlist/names` | Distinct playlist names |
+| `GET` | `/api/videos` | Supports `?category=` |
+| `GET` | `/api/health` | Status and timestamp |
+
+Unmatched routes serve `index.html` so client-side hash routing works on refresh.
+
+---
+
+## Structure
 
 ```
 cyberpunk-archive/
-├── index.html          # All HTML — 9 pages, sidebar, lightbox, notifications
-├── css/
-│   └── styles.css      # ~900 lines of neon styling
-├── js/
-│   └── app.js          # ~500 lines of interactivity
-└── README.md           # You are here
+├── index.html              # All 10 page sections, sidebar, lightbox, notifications
+├── css/styles.css          # ~2,400 lines — theming, layout, effects
+├── js/app.js               # ~1,400 lines — routing, players, rendering, prefs
+└── server/
+    ├── server.js           # Express app, static + API
+    ├── db.js               # node:sqlite connection and schema
+    ├── routes/             # gallery.js, playlist.js, videos.js
+    └── seed*.js            # Unsplash fetch + playlist/video seeds
 ```
 
-### index.html
-Contains the full DOM structure:
-- Sidebar with collapsible nav groups and search
-- 9 page sections (home, gallery, audio, videos, community, blog, downloads, about, settings)
-- Lightbox overlay for gallery
-- Notification system
-- All pages are hidden/shown via JS, not reloaded
+Pages are `<section class="page">` elements shown and hidden by hash-fragment routing — nothing reloads.
 
-### css/styles.css
-Implements the cyberpunk aesthetic:
-- CSS custom properties for theming (`--acc`, `--bg-0` through `--bg-5`)
-- Grid-based layouts with flexbox fallbacks
-- Neon glow effects using `box-shadow` and `filter: drop-shadow()`
-- Smooth animations with `transition` and `@keyframes`
-- Mobile-first responsive design (768px breakpoint for mobile, 480px for small phones)
-- Accessibility features: reduced motion, high contrast, compact mode
+---
 
-### js/app.js
-Handles all the logic:
-- **Data**: Arrays of content (GALLERY_DATA, PLAYLIST_DATA, BLOG_DATA, etc.)
-- **State**: Tracks current page, audio playback, user prefs
-- **Routing**: Single-page app using URL hash fragments
-- **Pages**: Render functions for gallery, playlist, blog, etc.
-- **Features**: Audio player, lightbox, search, guestbook, settings
-- **Utilities**: Notifications, animations, localStorage persistence
+## Customizing
 
-## Features
+**Themes** are CSS custom properties. Add a class in `styles.css` and a swatch in the Settings page:
 
-### 🎨 Sidebar Navigation
-- 5 collapsible groups (Main, Community, Resources, Settings)
-- Live search across all pages
-- Shows archive stats (12,847 files, 2.4TB stored, etc.)
-- Fully styled with neon borders and glow effects
-
-### 🖼️ Media Gallery
-- 16 placeholder items with gradient backgrounds
-- Category filters: All, Wallpaper, Concept, Screenshots, Fan Art
-- Lightbox viewer with keyboard navigation (← → Esc)
-- Hover effects with overlay info
-
-### 🎵 Audio Player
-- 12-track playlist with shuffle and repeat modes
-- Animated visualizer bars
-- Time scrubbing and current time display
-- Album cover carousel with 6 featured releases
-- Volume control with mute button
-
-### 📹 Videos
-- 6 video cards with play overlay
-- Category filter system
-- Placeholder design ready for embedded videos
-
-### 👥 Community Hub
-- Forums, IRC, Discord cards
-- Live guestbook with real submission (stored in localStorage)
-- Sign and view other visitor messages
-
-### 📰 Blog/News
-- 5 article cards with emoji banners and metadata
-- Category tags (News, Release, Art, Community, Tech)
-- Sidebar with tag cloud and archive stats
-
-### 📥 Downloads
-- 4 resource categories (Wallpapers, Tools, Audio, Guides)
-- File listings with size/format info
-
-### ℹ️ About/History
-- Timeline of archive milestones
-- Contributor avatars
-- ASCII art and tech stack info
-
-### ⚙️ Settings
-- **Theme picker**: 5 neon accent colors (Cyan, Magenta, Green, Purple, Orange)
-- **Effects toggles**: Scanlines, glitch, noise, animations
-- **Accessibility**: Reduced motion, high contrast modes
-- **Sidebar**: Compact mode option
-- **Export/Reset**: Download or reset all preferences
-
-## Customization
-
-### Adding a new page
-1. Add a new `<section class="page">` in index.html
-2. Give it an ID like `id="page-mypage"`
-3. Add a nav link in the sidebar: `<a class="nav-link" href="#mypage" data-page="mypage">Label</a>`
-4. Create a render function in app.js if it needs dynamic content
-5. The routing system picks it up automatically
-
-### Adding new colors
-In `styles.css`, create a new theme class:
 ```css
 .theme-lime {
   --acc: #00ff00;
@@ -146,80 +111,27 @@ In `styles.css`, create a new theme class:
   --acc-glow: 0 0 8px #00ff00, 0 0 24px rgba(0,255,0,0.25);
 }
 ```
-Then add a swatch button in the Settings page.
 
-### Changing content
-Edit the data arrays in `app.js`:
-- `GALLERY_DATA`: Gallery items
-- `PLAYLIST_DATA`: Audio tracks
-- `BLOG_DATA`: Blog posts
-- `DOWNLOAD_DATA`: Resource files
-- `CONTRIBUTORS`: About page team members
+Other knobs live in `:root` — `--sidebar-w`, `--trans`, `--trans-slow`.
 
-### Tweaking the vibe
-- **Speed**: Change `--trans: 0.25s` and `--trans-slow: 0.5s` in styles.css
-- **Glow intensity**: Adjust `box-shadow` values (the `0 0 20px rgba(...)` part)
-- **Sidebar width**: Change `--sidebar-w: 260px` in styles.css
-- **Colors**: Use the CSS custom properties for consistent theming
+**Adding a page:** add a `<section class="page" id="page-yours">`, add a sidebar link with `href="#yours" data-page="yours"`, and the router picks it up. Add a render function in `app.js` only if it needs dynamic content.
 
-## Browser support
-
-Works in all modern browsers:
-- Chrome/Edge 88+
-- Firefox 87+
-- Safari 14+
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Technical notes
-
-### Why vanilla JS?
-- **No build process**: Just open and go
-- **Easy to understand**: No framework abstractions
-- **Easy to modify**: One file, everything in scope
-- **No dependency bloat**: 500 lines vs 300KB of framework code
-
-### How the audio player works
-- UI is functional (play/pause, seek, volume)
-- Actual audio playback is simulated with JS timers
-- To connect real audio: replace the `tickPlayer()` function with Web Audio API calls
-
-### Storage
-- User preferences (theme, effects) stored in `localStorage` as JSON
-- Guestbook entries also stored locally (not synced to server)
-- Data persists across browser sessions
-
-### Performance
-- CSS animations use `transform` and `opacity` for GPU acceleration
-- Lazy rendering for gallery and blog
-- No external API calls or network requests
-
-## Troubleshooting
-
-**Page doesn't load**: Make sure you're running a server (even `python -m http.server`) or opening the file with a file:// URL. Some features require HTTP.
-
-**Audio player isn't playing actual sound**: That's normal — it's currently a UI/UX mock-up. To add real audio, connect the Web Audio API or an `<audio>` element in the render functions.
-
-**Mobile nav broken**: Clear your browser cache. localStorage might be holding old prefs.
-
-**Settings not saving**: Check if localStorage is enabled in your browser. Some private/incognito modes disable it.
-
-## Ideas for extension
-
-- **Real audio**: Hook up Web Audio API for actual playback
-- **Image upload**: Replace placeholder gradient items with real image uploads
-- **Backend**: Add a Node.js/Express server to store guestbook, uploads, etc.
-- **Comments**: Add comment sections to blog posts
-- **Dark mode**: Add a light mode variant (or go full neon)
-- **Analytics**: Track which pages users visit most
-- **PWA**: Add service worker for offline support
-- **Animation library**: Use Framer Motion or GSAP for smoother effects
-
-## License
-
-Built with ❤️ for the digital underground. Use it however you want — it's yours.
+**Placeholder content** lives in the `GALLERY_DATA`, `PLAYLIST_DATA`, `BLOG_DATA`, `DOWNLOAD_DATA`, and `CONTRIBUTORS` arrays at the top of `app.js`. These are the fallback set — the database overrides them when the server is up.
 
 ---
 
-**Made for everyone who dreams of neon-soaked cities and digital rebellion.** 🟡🔴🟣
+## Known limitations
 
-Visit the site. Browse the archive. Sign the guestbook. Customize your theme. And remember: in the sprawl, the signal is everything.
+- The guestbook writes to `localStorage`, not the database. Entries are per-browser and not shared between visitors.
+- Blog posts and downloads are static arrays with no backing table. The download links don't resolve to files.
+- Audio and video playback both depend on YouTube embeds, so they need a network connection and are subject to region blocks and takedowns.
+- The Unsplash free tier caps at 50 requests/hour. A full `npm run seed` uses 8.
+- Cyberpunk 2077 titles, artwork references, and soundtrack are property of CD Projekt Red and the respective artists. This is a fan project.
+
+## Browser support
+
+Chrome/Edge 88+, Firefox 87+, Safari 14+, and current mobile browsers. Responsive down to 480px.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
